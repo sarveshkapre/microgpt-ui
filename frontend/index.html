@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>microGPT Cerebral Lab</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>microGPT Cerebral Lab</h1>
+          <p>Watch a tiny transformer think: forward pass, attention, loss, and backprop.</p>
+        </div>
+        <div class="status" id="status-pill">No Session</div>
+      </header>
+
+      <section class="panel controls">
+        <h2>Session Controls</h2>
+        <div class="grid">
+          <label>Embedding
+            <input id="n-embd" type="number" value="16" min="4" step="4" />
+          </label>
+          <label>Heads
+            <input id="n-head" type="number" value="4" min="1" />
+          </label>
+          <label>Layers
+            <input id="n-layer" type="number" value="1" min="1" />
+          </label>
+          <label>Block Size
+            <input id="block-size" type="number" value="8" min="2" max="32" />
+          </label>
+          <label>Learning Rate
+            <input id="learning-rate" type="number" value="0.01" step="0.001" min="0.0001" />
+          </label>
+          <label>Total Steps
+            <input id="num-steps" type="number" value="500" min="10" />
+          </label>
+          <label>Run Steps
+            <input id="run-steps" type="number" value="100" min="1" />
+          </label>
+          <label>Delay (ms)
+            <input id="run-delay" type="number" value="150" min="0" />
+          </label>
+          <label>Temperature
+            <input id="temperature" type="number" value="0.5" min="0.1" max="2" step="0.1" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="start-btn">Start Session</button>
+          <button id="step-btn" disabled>Step</button>
+          <button id="run-btn" disabled>Run</button>
+          <button id="pause-btn" disabled>Pause</button>
+          <button id="sample-btn" disabled>Sample</button>
+        </div>
+        <pre id="meta" class="meta"></pre>
+      </section>
+
+      <section class="panel graph-panel">
+        <h2>Computation Graph Pulse</h2>
+        <svg id="graph" viewBox="0 0 960 190" aria-label="computation graph">
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z"></path>
+            </marker>
+          </defs>
+          <g class="edges"></g>
+          <g class="nodes"></g>
+        </svg>
+      </section>
+
+      <section class="split">
+        <article class="panel">
+          <h2>Loss Timeline</h2>
+          <canvas id="loss-chart" width="700" height="240"></canvas>
+          <div id="step-stats" class="stats"></div>
+        </article>
+
+        <article class="panel">
+          <h2>Attention Constellation</h2>
+          <div class="heatmap-head" id="heatmap-head">No token yet</div>
+          <div id="attention-heatmap" class="heatmap"></div>
+        </article>
+      </section>
+
+      <section class="split">
+        <article class="panel">
+          <h2>Top Token Probabilities</h2>
+          <div id="prob-bars" class="bars"></div>
+          <div id="token-trail" class="trail"></div>
+        </article>
+
+        <article class="panel">
+          <h2>Inference Samples</h2>
+          <ol id="samples" class="samples"></ol>
+        </article>
+      </section>
+    </main>
+
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>

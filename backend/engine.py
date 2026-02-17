@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import os
 import random
+import time
 import urllib.request
 from dataclasses import asdict, dataclass
 from typing import Any
@@ -257,6 +258,7 @@ class MicroGPT:
         return logits, attention_trace
 
     def train_step(self) -> dict[str, Any]:
+        start_time = time.perf_counter()
         cfg = self.cfg
         doc = self.docs[self.step % len(self.docs)]
         tokens = [self.BOS] + [self.stoi[ch] for ch in doc] + [self.BOS]
@@ -309,11 +311,13 @@ class MicroGPT:
             p.grad = 0.0
 
         self.step += 1
+        step_time_ms = (time.perf_counter() - start_time) * 1000.0
 
         return {
             "type": "train_step",
             "step": self.step,
             "num_steps": cfg.num_steps,
+            "step_time_ms": step_time_ms,
             "doc": doc,
             "loss": loss.data,
             "learning_rate": lr_t,
@@ -360,4 +364,3 @@ class MicroGPT:
             "step": self.step,
             "num_params": len(self.params),
         }
-

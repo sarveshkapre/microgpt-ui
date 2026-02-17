@@ -3,6 +3,7 @@ const state = {
   ws: null,
   running: false,
   losses: [],
+  trace: [],
   lastEvent: null,
 };
 
@@ -21,6 +22,7 @@ const els = {
   runBtn: document.getElementById("run-btn"),
   pauseBtn: document.getElementById("pause-btn"),
   sampleBtn: document.getElementById("sample-btn"),
+  resetBtn: document.getElementById("reset-btn"),
 };
 
 const graphNodes = [
@@ -45,6 +47,7 @@ function wireActions() {
   els.runBtn.addEventListener("click", runSession);
   els.pauseBtn.addEventListener("click", pauseSession);
   els.sampleBtn.addEventListener("click", sampleSession);
+  els.resetBtn.addEventListener("click", resetSession);
 }
 
 function cfgValue(id) {
@@ -83,7 +86,9 @@ async function startSession() {
 
     state.sessionId = res.session_id;
     state.losses = [];
+    state.trace = [];
     state.lastEvent = null;
+    els.samples.innerHTML = "";
     bindSocket(res.session_id);
 
     setButtonsEnabled(true);
@@ -157,6 +162,23 @@ async function sampleSession() {
   }
 }
 
+async function resetSession() {
+  if (!state.sessionId) {
+    return;
+  }
+  try {
+    const res = await api(`/api/session/${state.sessionId}/reset`, { method: "POST" });
+    state.losses = [];
+    state.trace = [];
+    state.lastEvent = null;
+    render();
+    renderSamples([]);
+    renderMeta(res.metadata);
+  } catch (err) {
+    alert(`Reset failed: ${err.message}`);
+  }
+}
+
 function bindSocket(sessionId) {
   if (state.ws) {
     state.ws.close();
@@ -168,7 +190,7 @@ function bindSocket(sessionId) {
 
   ws.onmessage = (ev) => {
     const data = JSON.parse(ev.data);
-    if (data.type === "train_step") {
+  if (data.type === "train_step") {
       onTrainEvent(data);
     } else if (data.type === "run_status") {
       setStatus(data.running ? "Running" : "Session Ready", data.running);
@@ -176,6 +198,8 @@ function bindSocket(sessionId) {
       renderSamples(data.samples);
     } else if (data.type === "session") {
       renderMeta(data.metadata);
+    } else if (data.type === "run_status") {
+      setStatus(data.running ? "Running" : "Session Ready", data.running);
     }
   };
 
@@ -189,8 +213,12 @@ function bindSocket(sessionId) {
 function onTrainEvent(event) {
   state.lastEvent = event;
   state.losses.push(event.loss);
+  state.trace.push(event);
   if (state.losses.length > 500) {
     state.losses.shift();
+  }
+  if (state.trace.length > 500) {
+    state.trace.shift();
   }
 
   pulseGraph([

@@ -149,6 +149,8 @@ async def _run_steps(session_id: str, steps: int, delay_ms: int) -> None:
         for _ in range(steps):
             if not session.running:
                 break
+            if session.engine.step >= session.engine.cfg.num_steps:
+                break
             async with session.lock:
                 event = session.engine.train_step()
             await session.broadcast(event)
@@ -157,7 +159,9 @@ async def _run_steps(session_id: str, steps: int, delay_ms: int) -> None:
     finally:
         session.running = False
         session.run_task = None
-        await session.broadcast({"type": "run_status", "running": False})
+        await session.broadcast(
+            {"type": "run_status", "running": False, "completed": session.engine.step >= session.engine.cfg.num_steps}
+        )
 
 
 @app.post("/api/session/{session_id}/run")
@@ -165,6 +169,8 @@ async def run_session(session_id: str, req: RunRequest) -> dict[str, Any]:
     session = _get_session(session_id)
     if session.running:
         raise HTTPException(status_code=409, detail="Session is already running")
+    if session.engine.step >= session.engine.cfg.num_steps:
+        return {"running": False, "completed": True, "reason": "session training complete"}
 
     session.running = True
     session.run_task = asyncio.create_task(_run_steps(session_id, req.steps, req.delay_ms))

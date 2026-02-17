@@ -88,13 +88,14 @@ from backend.app import app
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
-start = client.post(\"/api/session/start\", json={\"n_embd\":16,\"n_head\":4,\"n_layer\":1,\"block_size\":8,\"learning_rate\":0.01,\"num_steps\":50,\"temperature\":0.5,\"seed\":42})
+start = client.post("/api/session/start", json={"n_embd":16, "n_head":4, "n_layer":1, "block_size":8, "learning_rate":0.01, "num_steps":50, "temperature":0.5, "seed":42})
 start.raise_for_status()
-sid = start.json()[\"session_id\"]
-client.post(f\"/api/session/{sid}/step\").raise_for_status()
-sample = client.post(f\"/api/session/{sid}/sample\", json={\"num_samples\":1,\"temperature\":0.6})
+sid = start.json()["session_id"]
+client.post(f"/api/session/{sid}/step").raise_for_status()
+sample = client.post(f"/api/session/{sid}/sample", json={"num_samples":1, "temperature":0.6})
 sample.raise_for_status()
-print(\"Local self-hosted smoke test passed\")\nPY
+print("Local self-hosted smoke test passed")
+PY
 python3 -m compileall -q backend
 ```
 

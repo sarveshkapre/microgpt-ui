@@ -88,6 +88,21 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/sessions")
+def list_sessions() -> dict[str, list[dict[str, object]]]:
+    active = [
+        {
+            "session_id": sid,
+            "running": session.running,
+            "step": session.engine.step,
+            "num_steps": session.engine.cfg.num_steps,
+            "clients": len(session.clients),
+        }
+        for sid, session in sessions.items()
+    ]
+    return {"sessions": active}
+
+
 @app.post("/api/session/start")
 async def start_session(req: StartSessionRequest) -> dict[str, Any]:
     if req.n_embd <= 0 or req.n_head <= 0:

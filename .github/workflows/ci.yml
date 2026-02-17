@@ -1,0 +1,89 @@
+name: microGPT Cerebral Lab CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: backend checks
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate runner prerequisites
+        run: |
+          set -euo pipefail
+
+          echo "Runner OS: $(uname -a)"
+          command -v git >/dev/null 2>&1 || { echo "git is required on the self-hosted runner"; exit 1; }
+          command -v python3 >/dev/null 2>&1 || { echo "python3 is required on the self-hosted runner"; exit 1; }
+          python3 -m pip --version >/dev/null 2>&1 || { echo "pip is required on the self-hosted runner"; exit 1; }
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "docker is not installed; skipping docker-only checks"
+          else
+            docker --version
+          fi
+
+      - name: Install Python dependencies
+        run: |
+          set -euo pipefail
+          python3 -m venv .venv
+          # shellcheck disable=SC1091
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run API smoke tests
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          source .venv/bin/activate
+
+          python - <<'PY'
+          from backend.app import app
+          from fastapi.testclient import TestClient
+
+          client = TestClient(app)
+
+          start = client.post(
+              "/api/session/start",
+              json={
+                  "n_embd": 16,
+                  "n_head": 4,
+                  "n_layer": 1,
+                  "block_size": 8,
+                  "learning_rate": 0.01,
+                  "num_steps": 100,
+                  "temperature": 0.5,
+                  "seed": 42,
+              },
+          )
+          start.raise_for_status()
+          session_id = start.json()["session_id"]
+
+          step = client.post(f"/api/session/{session_id}/step")
+          step.raise_for_status()
+
+          sample = client.post(f"/api/session/{session_id}/sample", json={"num_samples": 2, "temperature": 0.6})
+          sample.raise_for_status()
+
+          samples = sample.json().get("samples", [])
+          if len(samples) != 2:
+              raise SystemExit("expected 2 samples")
+
+          print("CI smoke check passed")
+          PY
+
+      - name: Verify Python modules compile
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q backend

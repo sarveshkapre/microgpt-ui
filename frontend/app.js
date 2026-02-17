@@ -16,6 +16,8 @@ const els = {
   heatmap: document.getElementById("attention-heatmap"),
   probBars: document.getElementById("prob-bars"),
   tokenTrail: document.getElementById("token-trail"),
+  progressTrack: document.getElementById("progress-fill"),
+  progressLabel: document.getElementById("progress-label"),
   samples: document.getElementById("samples"),
   startBtn: document.getElementById("start-btn"),
   stepBtn: document.getElementById("step-btn"),
@@ -256,6 +258,7 @@ function renderMeta(metadata) {
 function render() {
   renderLossChart();
   renderStepStats();
+  renderProgress();
   renderAttention();
   renderProbs();
   renderTrail();
@@ -267,7 +270,17 @@ function renderStepStats() {
     return;
   }
   const e = state.lastEvent;
-  els.stepStats.textContent = `step ${e.step}/${e.num_steps} | loss ${e.loss.toFixed(4)} | grad norm ${e.grad_norm.toFixed(4)} | lr ${e.learning_rate.toExponential(2)}`;
+  const pct = (e.progress ?? 0) * 100;
+  els.stepStats.textContent = `step ${e.step}/${e.num_steps} | loss ${e.loss.toFixed(4)} | grad norm ${e.grad_norm.toFixed(4)} | lr ${e.learning_rate.toExponential(2)} | progress ${pct.toFixed(1)}%`;
+}
+
+function renderProgress() {
+  const latest = state.lastEvent;
+  const progress = latest?.progress ?? 0;
+  const pct = Math.min(1, Math.max(0, progress));
+  els.progressTrack.style.width = `${(pct * 100).toFixed(1)}%`;
+  const remaining = latest?.steps_remaining ?? (latest?.num_steps ? latest?.num_steps - latest?.step : "n/a");
+  els.progressLabel.textContent = `${latest ? `${(pct * 100).toFixed(1)}%` : "0.0%"}${typeof remaining === "number" ? ` | remaining ${remaining}` : ""}`;
 }
 
 function renderLossChart() {

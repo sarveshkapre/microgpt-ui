@@ -25,6 +25,7 @@ const els = {
   pauseBtn: document.getElementById("pause-btn"),
   sampleBtn: document.getElementById("sample-btn"),
   resetBtn: document.getElementById("reset-btn"),
+  exportBtn: document.getElementById("export-btn"),
 };
 
 const graphNodes = [
@@ -50,6 +51,7 @@ function wireActions() {
   els.pauseBtn.addEventListener("click", pauseSession);
   els.sampleBtn.addEventListener("click", sampleSession);
   els.resetBtn.addEventListener("click", resetSession);
+  els.exportBtn.addEventListener("click", exportTrace);
   window.addEventListener("keydown", handleKeyboard);
 }
 
@@ -221,6 +223,8 @@ async function resetSession() {
     render();
     renderSamples([]);
     renderMeta(res.metadata);
+    setStatus("Session Ready", false);
+    setButtonsEnabled(true);
   } catch (err) {
     alert(`Reset failed: ${err.message}`);
   }
@@ -237,7 +241,7 @@ function bindSocket(sessionId) {
 
   ws.onmessage = (ev) => {
     const data = JSON.parse(ev.data);
-  if (data.type === "train_step") {
+    if (data.type === "train_step") {
       onTrainEvent(data);
     } else if (data.type === "run_status") {
       setStatus(data.running ? "Running" : "Session Ready", data.running);
@@ -245,8 +249,6 @@ function bindSocket(sessionId) {
       renderSamples(data.samples);
     } else if (data.type === "session") {
       renderMeta(data.metadata);
-    } else if (data.type === "run_status") {
-      setStatus(data.running ? "Running" : "Session Ready", data.running);
     }
   };
 
@@ -288,6 +290,29 @@ function setButtonsEnabled(enabled) {
   els.runBtn.disabled = !enabled;
   els.pauseBtn.disabled = !enabled;
   els.sampleBtn.disabled = !enabled;
+  els.resetBtn.disabled = !enabled;
+  els.exportBtn.disabled = !enabled;
+}
+
+function exportTrace() {
+  if (!state.sessionId || state.trace.length === 0) {
+    alert("No trace data to export yet.");
+    return;
+  }
+
+  const payload = {
+    session_id: state.sessionId,
+    captured_at: new Date().toISOString(),
+    metadata: state.lastEvent?.metadata ?? null,
+    events: state.trace,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const anchor = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  anchor.href = url;
+  anchor.download = `microgpt-trace-${state.sessionId}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 function setStatus(text, running) {

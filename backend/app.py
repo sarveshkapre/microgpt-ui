@@ -80,6 +80,16 @@ def health() -> dict[str, str]:
 
 @app.post("/api/session/start")
 async def start_session(req: StartSessionRequest) -> dict[str, Any]:
+    if req.n_embd <= 0 or req.n_head <= 0:
+        raise HTTPException(status_code=400, detail="n_embd and n_head must be positive integers")
+    if req.n_head > req.n_embd:
+        raise HTTPException(status_code=400, detail="n_head cannot be greater than n_embd")
+    if req.n_embd % req.n_head != 0:
+        raise HTTPException(
+            status_code=400,
+            detail="n_embd must be divisible by n_head",
+        )
+
     cfg = replace(
         ModelConfig(),
         n_embd=req.n_embd,
@@ -195,4 +205,3 @@ app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(str(FRONTEND_DIR / "index.html"))
-

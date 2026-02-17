@@ -60,6 +60,16 @@ class SessionState:
         for client in dead:
             self.clients.discard(client)
 
+    async def stop_run(self) -> None:
+        self.running = False
+        if self.run_task and not self.run_task.done():
+            self.run_task.cancel()
+            try:
+                await self.run_task
+            except Exception:
+                pass
+        self.run_task = None
+
 
 app = FastAPI(title="microGPT Visualizer")
 app.add_middleware(
@@ -165,9 +175,19 @@ async def run_session(session_id: str, req: RunRequest) -> dict[str, Any]:
 @app.post("/api/session/{session_id}/pause")
 async def pause_session(session_id: str) -> dict[str, Any]:
     session = _get_session(session_id)
-    session.running = False
+    await session.stop_run()
     await session.broadcast({"type": "run_status", "running": False})
     return {"running": False}
+
+
+@app.post("/api/session/{session_id}/reset")
+async def reset_session(session_id: str) -> dict[str, Any]:
+    session = _get_session(session_id)
+    await session.stop_run()
+    session.engine = MicroGPT(replace(ModelConfig(), **session.engine.cfg.__dict__))
+    payload = {"session_id": session_id, "running": False, "metadata": session.engine.metadata()}
+    await session.broadcast({"type": "session", **payload})
+    return payload
 
 
 @app.post("/api/session/{session_id}/sample")

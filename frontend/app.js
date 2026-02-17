@@ -50,6 +50,7 @@ function wireActions() {
   els.pauseBtn.addEventListener("click", pauseSession);
   els.sampleBtn.addEventListener("click", sampleSession);
   els.resetBtn.addEventListener("click", resetSession);
+  window.addEventListener("keydown", handleKeyboard);
 }
 
 function cfgValue(id) {
@@ -161,6 +162,50 @@ async function sampleSession() {
     renderSamples(res.samples);
   } catch (err) {
     alert(`Sample failed: ${err.message}`);
+  }
+}
+
+function handleKeyboard(event) {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) {
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+  if (!state.sessionId && !["n", "enter"].includes(key)) {
+    return;
+  }
+
+  if (key === "enter") {
+    event.preventDefault();
+    if (!state.sessionId) {
+      startSession();
+    }
+    return;
+  }
+
+  if (key === "n") {
+    event.preventDefault();
+    startSession();
+    return;
+  }
+  if (key === "s") {
+    event.preventDefault();
+    stepSession();
+    return;
+  }
+  if (key === "r") {
+    event.preventDefault();
+    runSession();
+    return;
+  }
+  if (key === "p") {
+    event.preventDefault();
+    pauseSession();
+    return;
+  }
+  if (key === "c") {
+    event.preventDefault();
+    sampleSession();
   }
 }
 

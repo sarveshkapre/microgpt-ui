@@ -120,6 +120,12 @@ input {
   gap: 8px;
 }
 
+.hint {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
 button {
   border: none;
   border-radius: 10px;

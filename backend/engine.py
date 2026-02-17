@@ -318,6 +318,8 @@ class MicroGPT:
             "step": self.step,
             "num_steps": cfg.num_steps,
             "step_time_ms": step_time_ms,
+            "progress": min(1.0, self.step / max(1, cfg.num_steps)),
+            "steps_remaining": max(0, cfg.num_steps - self.step),
             "doc": doc,
             "loss": loss.data,
             "learning_rate": lr_t,
@@ -356,6 +358,7 @@ class MicroGPT:
         return outputs
 
     def metadata(self) -> dict[str, Any]:
+        max_progress_steps = max(1, self.cfg.num_steps)
         return {
             "config": asdict(self.cfg),
             "num_docs": len(self.docs),
@@ -363,4 +366,7 @@ class MicroGPT:
             "bos_token_id": self.BOS,
             "step": self.step,
             "num_params": len(self.params),
+            "num_steps": self.cfg.num_steps,
+            "steps_remaining": max(0, self.cfg.num_steps - self.step),
+            "progress": min(1.0, self.step / max_progress_steps),
         }
